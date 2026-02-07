@@ -1,0 +1,1 @@
+# curriculum_1_kosei-kawai
