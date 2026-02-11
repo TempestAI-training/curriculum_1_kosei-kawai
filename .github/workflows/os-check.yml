@@ -1,0 +1,83 @@
+name: OS Assignment Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --- 課題Bの確認 ---
+      - name: Check os_B.txt
+        run: |
+          FILE=oscommand/os_B.txt
+
+          if [ ! -f "$FILE" ]; then
+            echo "os_B.txt が存在しません"
+            exit 1
+          fi
+
+          if [ "$(wc -l < "$FILE")" -ne 1 ]; then
+            echo "os_B.txt は1行で書かれていません"
+            exit 1
+          fi
+
+          LINE=$(cat "$FILE")
+
+          echo "$LINE" | grep -q 'chmod' \
+            || (echo "chmod コマンドが含まれていません" && exit 1)
+
+          echo "$LINE" | grep -Eq '^chmod[[:space:]]+(.+)?(\+x|[0-7]{3}|u\+x|a\+x)[[:space:]]+check\.sh$' \
+            || (echo "check.sh に実行権限を付与していません" && exit 1)
+
+      # --- 課題Cの確認 ---
+      - name: Prepare users.list
+        run: |
+          echo "level:admin" > users.list
+          echo "level:user" >> users.list
+          echo "level:guest" >> users.list
+
+      - name: Check os_C.txt
+        run: |
+          FILE=oscommand/os_C.txt
+
+          if [ ! -f "$FILE" ]; then
+            echo "os_C.txt が存在しません"
+            exit 1
+          fi
+
+          if [ "$(wc -l < "$FILE")" -ne 1 ]; then
+            echo "os_C.txt は1行で書かれていません"
+            exit 1
+          fi
+
+          LINE=$(cat "$FILE")
+
+          echo "$LINE" | grep -q 'cat[^|]*users.list' \
+            || (echo "cat users.list が含まれていません" && exit 1)
+
+          echo "$LINE" | grep -q 'grep[^|]*user' \
+            || (echo "grep user が含まれていません" && exit 1)
+
+          echo "$LINE" | grep -q 'cut[^|]*-d[^|]*:.*-f[^|]*2' \
+            || (echo "cut -d : -f 2 が含まれていません" && exit 1)
+
+          echo "$LINE" | grep -q '>[[:space:]]*result.txt$' \
+            || (echo "result.txt へのリダイレクトが正しくありません" && exit 1)
+      
+      - name: Execute os_C command and verify result
+        run: |
+          sh oscommand/os_C.txt
+          RESULT=$(cat result.txt)
+
+          if [ "$RESULT" != "user" ]; then
+            echo "result.txt の内容が正しくありません"
+            exit 1
+          fi
+
+      - name: All checks passed
+        run: echo "課題B・Cともに正解です"
