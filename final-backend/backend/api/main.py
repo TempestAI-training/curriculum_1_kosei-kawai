@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from psycopg import connect
 from psycopg.rows import dict_row
 from uuid import uuid4
+from typing import Optional
 load_dotenv()
 
 database_url = os.environ.get("DATABASE_URL")
@@ -30,7 +31,7 @@ client = AzureOpenAI(
 
 class ChatRequest(BaseModel):
     message: str
-    conversation_id: str | None = None
+    conversation_id: Optional[str] = None
 
 
 def get_postgres_connection():
@@ -58,7 +59,7 @@ def save_message(conversation_id: str, role: str, content: str, model: str = "us
             )
             conn.commit()
 
-def get_or_create_conversation(requested_id: str | None) -> str:
+def get_or_create_conversation(requested_id: Optional[str]) -> str:
     with get_postgres_connection() as conn:
         with conn.cursor() as cur:
             if requested_id:
@@ -110,13 +111,12 @@ def chat(request: ChatRequest):
             messages=formatted_messages
         )
         
-        conversation_id = get_or_create_conversation(request.conversation_id)
         save_message(conversation_id, "user", request.message, "user")
 
 
 
         ai_message = response.choices[0].message.content
-        save_message(conversation_id, "system", ai_message, deployment_name)
+        save_message(conversation_id, "assistant", ai_message, deployment_name)
         return {
             "conversation_id": conversation_id,
             "reply": ai_message,
@@ -124,6 +124,8 @@ def chat(request: ChatRequest):
 
     except Exception as e:
         # エラーが発生した場合の処理
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.get("/conversations")
