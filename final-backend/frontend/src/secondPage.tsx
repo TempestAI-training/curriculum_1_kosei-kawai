@@ -15,7 +15,8 @@ interface APIResponse {
 const SecondPage = ({onBack}:second_Props) => {
     const [messages, setMessages] = useState<message[]>([]);
     const [users_message, setUsers_message] = useState("");
-    
+    const [conversationId, setConversationId] = useState<string | null>(null);
+
     const Submit = async (e : React.FormEvent) => {
         e.preventDefault();
         if (!users_message) return;
@@ -40,13 +41,16 @@ const SecondPage = ({onBack}:second_Props) => {
                 },
                 body: JSON.stringify({
                     message: currentInput,
+                    conversation_id: conversationId,
                 }),
             });
             if (!response.ok) {
             throw new Error("サーバーエラーが発生しました");
             }
             const data = await response.json();
-
+            if (data.conversation_id) {
+                setConversationId(data.conversation_id);
+            }
             const Botmessage : message = {
                 id : Date.now() + 1,
                 text : data.reply,
