@@ -1,6 +1,7 @@
 [project]
 name = "demo-app"
 version = "0.1.0"
+readme = "README.md"
 description = ""
 authors = [
     {name = "Your Name",email = "you@example.com"}
